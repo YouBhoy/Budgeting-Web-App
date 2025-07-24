@@ -36,22 +36,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Budgeting App</title>
+    <title>Login - BudgetFlix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-    <h2>Login</h2>
-    <?php if (isset($_GET['registered'])): ?>
-        <div style="color: green; margin-bottom: 10px;">Registration successful! Please log in.</div>
-    <?php endif; ?>
-    <?php if ($error): ?>
-        <div style="color: red; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
-    <?php endif; ?>
-    <form method="post" action="login.php">
-        <label>Email: <input type="email" name="email" required></label><br>
-        <label>Password: <input type="password" name="password" required></label><br>
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="register.php">Register here</a>.</p>
+    <div class="navbar">
+        <div class="navbar-logo">BudgetFlix</div>
+        <div class="navbar-links">
+            <a href="index.php">Home</a>
+            <a href="login.php">Login</a>
+            <a href="register.php">Register</a>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Login</h2>
+        <?php if (isset($_GET['registered'])): ?>
+            <div style="color: #00e676; margin-bottom: 10px;">Registration successful! Please log in.</div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div style="color: #e50914; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
+        <?php endif; ?>
+        <form method="post" action="login.php">
+            <label>Email: <input type="email" name="email" required></label><br>
+            <label>Password: <input type="password" name="password" required></label><br>
+            <button type="submit" class="action-btn">Login</button>
+        </form>
+        <p>Don't have an account? <a href="register.php">Register here</a>.</p>
+    </div>
 </body>
 </html> 

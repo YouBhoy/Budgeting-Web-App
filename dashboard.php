@@ -28,39 +28,44 @@ $conn->next_result();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - Budgeting App</title>
+    <title>Dashboard - BudgetFlix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
-<body class="banking-bg">
-    <div class="dashboard-container">
-        <div class="dashboard-header">
-            <div class="bank-logo">💰</div>
+<body>
+    <div class="navbar">
+        <div class="navbar-logo">BudgetFlix</div>
+        <div class="navbar-links">
+            <a href="dashboard.php">Dashboard</a>
+            <a href="transactions.php">Transactions</a>
+            <a href="add_transaction.php">Add</a>
+            <a href="settings.php">Settings</a>
+            <a href="logout.php">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+        <div style="text-align:center; margin-bottom:32px;">
             <h2>Welcome to Your Dashboard</h2>
             <p>Hello, <?= htmlspecialchars($username) ?>!</p>
         </div>
-        <div class="totals-cards">
-            <div class="card income-card">
+        <div class="card-grid">
+            <div class="card">
                 <div class="card-label">Total Income</div>
-                <div class="card-value">₱<?= number_format($total_income, 2) ?></div>
+                <div class="card-value"> ₱<?= number_format($total_income, 2) ?></div>
             </div>
-            <div class="card expense-card">
+            <div class="card">
                 <div class="card-label">Total Expenses</div>
-                <div class="card-value">₱<?= number_format($total_expense, 2) ?></div>
+                <div class="card-value"> ₱<?= number_format($total_expense, 2) ?></div>
             </div>
-            <div class="card balance-card">
+            <div class="card">
                 <div class="card-label">Balance</div>
-                <div class="card-value">₱<?= number_format($balance, 2) ?></div>
+                <div class="card-value"> ₱<?= number_format($balance, 2) ?></div>
             </div>
         </div>
-        <div class="quick-actions">
+        <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:32px;">
             <a href="add_transaction.php" class="action-btn">Add Transaction</a>
             <a href="transactions.php" class="action-btn">View Transactions</a>
             <a href="settings.php" class="action-btn">Settings</a>
-            <a href="logout.php" class="action-btn logout">Logout</a>
-        </div>
-        <div class="analytics-section">
-            <h3>Analytics & Graphs</h3>
-            <div class="analytics-placeholder">(Coming soon: Visualize your spending and income trends here!)</div>
+            <a href="logout.php" class="action-btn" style="background:#b0060f;">Logout</a>
         </div>
     </div>
 </body>

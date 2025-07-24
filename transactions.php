@@ -96,42 +96,56 @@ if (isset($_POST['show_summary'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Transactions - Budgeting App</title>
+    <title>Transactions - BudgetFlix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-    <h2>Your Transactions</h2>
-    <p><a href="add_transaction.php">Add Transaction</a> | <a href="dashboard.php">Back to Dashboard</a></p>
-    <!-- FILTER FORM -->
-    <form method="get" action="transactions.php" style="margin-bottom: 20px;">
-        <label>Type:
-            <select name="type">
-                <option value="">All</option>
-                <option value="income"<?= $type_filter==='income'?' selected':''; ?>>Income</option>
-                <option value="expense"<?= $type_filter==='expense'?' selected':''; ?>>Expense</option>
-            </select>
-        </label>
-        <label>Category:
-            <select name="category">
-                <option value="">All</option>
-                <?php foreach ($categories as $cat): ?>
-                    <option value="<?= htmlspecialchars($cat) ?>"<?= $category_filter===$cat?' selected':''; ?>><?= htmlspecialchars($cat) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Start Date: <input type="date" name="start_date" value="<?= htmlspecialchars($start_date) ?>"></label>
-        <label>End Date: <input type="date" name="end_date" value="<?= htmlspecialchars($end_date) ?>"></label>
-        <button type="submit">Filter</button>
-        <a href="transactions.php">Reset</a>
-        <button type="submit" name="export" value="csv">Export CSV</button>
-    </form>
-    <!-- TRANSACTIONS TABLE -->
-    <?php if (empty($transactions)): ?>
-        <p>No transactions found.</p>
-    <?php else: ?>
-        <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
+    <div class="navbar">
+        <div class="navbar-logo">BudgetFlix</div>
+        <div class="navbar-links">
+            <a href="dashboard.php">Dashboard</a>
+            <a href="transactions.php">Transactions</a>
+            <a href="add_transaction.php">Add</a>
+            <a href="settings.php">Settings</a>
+            <a href="logout.php">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Your Transactions</h2>
+        <div style="margin-bottom:20px;">
+            <a href="add_transaction.php" class="action-btn">Add Transaction</a>
+            <a href="dashboard.php" class="action-btn">Back to Dashboard</a>
+        </div>
+        <!-- FILTER FORM -->
+        <form method="get" action="transactions.php" style="margin-bottom: 20px;">
+            <label>Type:
+                <select name="type">
+                    <option value="">All</option>
+                    <option value="income"<?= $type_filter==='income'?' selected':''; ?>>Income</option>
+                    <option value="expense"<?= $type_filter==='expense'?' selected':''; ?>>Expense</option>
+                </select>
+            </label>
+            <label>Category:
+                <select name="category">
+                    <option value="">All</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= htmlspecialchars($cat) ?>"<?= $category_filter===$cat?' selected':''; ?>><?= htmlspecialchars($cat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Start Date: <input type="date" name="start_date" value="<?= htmlspecialchars($start_date) ?>"></label>
+            <label>End Date: <input type="date" name="end_date" value="<?= htmlspecialchars($end_date) ?>"></label>
+            <button type="submit" class="action-btn">Filter</button>
+            <a href="transactions.php" class="action-btn">Reset</a>
+            <button type="submit" name="export" value="csv" class="action-btn">Export CSV</button>
+        </form>
+        <!-- TRANSACTIONS TABLE -->
+        <?php if (empty($transactions)): ?>
+            <p>No transactions found.</p>
+        <?php else: ?>
+        <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
             <thead>
-                <tr>
+                <tr style="background:#181818;">
                     <th>Type</th>
                     <th>Amount</th>
                     <th>Description</th>
@@ -141,7 +155,7 @@ if (isset($_POST['show_summary'])) {
             </thead>
             <tbody>
                 <?php foreach ($transactions as $t): ?>
-                    <tr>
+                    <tr style="border-bottom:1px solid #333;">
                         <td><?= htmlspecialchars($t['type']) ?></td>
                         <td><?= number_format($t['amount'], 2) ?></td>
                         <td><?= htmlspecialchars($t['description']) ?></td>
@@ -151,47 +165,48 @@ if (isset($_POST['show_summary'])) {
                 <?php endforeach; ?>
             </tbody>
         </table>
-    <?php endif; ?>
-    <!-- MONTHLY SUMMARY FORM -->
-    <h3>Monthly Summary</h3>
-    <form method="post" action="transactions.php" style="margin-bottom: 20px;">
-        <label>Month:
-            <select name="summary_month">
-                <?php for ($m=1; $m<=12; $m++): ?>
-                    <option value="<?= $m ?>"<?= $summary_month==$m?' selected':''; ?>><?= date('F', mktime(0,0,0,$m,1)) ?></option>
-                <?php endfor; ?>
-            </select>
-        </label>
-        <label>Year:
-            <select name="summary_year">
-                <?php for ($y=date('Y')-5; $y<=date('Y'); $y++): ?>
-                    <option value="<?= $y ?>"<?= $summary_year==$y?' selected':''; ?>><?= $y ?></option>
-                <?php endfor; ?>
-            </select>
-        </label>
-        <button type="submit" name="show_summary" value="1">Show Summary</button>
-    </form>
-    <?php if (!empty($summary)): ?>
-        <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
-            <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($summary as $s): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($s['type']) ?></td>
-                        <td><?= htmlspecialchars($s['category']) ?></td>
-                        <td><?= number_format($s['total'], 2) ?></td>
+        <?php endif; ?>
+        <!-- MONTHLY SUMMARY FORM -->
+        <h3>Monthly Summary</h3>
+        <form method="post" action="transactions.php" style="margin-bottom: 20px;">
+            <label>Month:
+                <select name="summary_month">
+                    <?php for ($m=1; $m<=12; $m++): ?>
+                        <option value="<?= $m ?>"<?= $summary_month==$m?' selected':''; ?>><?= date('F', mktime(0,0,0,$m,1)) ?></option>
+                    <?php endfor; ?>
+                </select>
+            </label>
+            <label>Year:
+                <select name="summary_year">
+                    <?php for ($y=date('Y')-5; $y<=date('Y'); $y++): ?>
+                        <option value="<?= $y ?>"<?= $summary_year==$y?' selected':''; ?>><?= $y ?></option>
+                    <?php endfor; ?>
+                </select>
+            </label>
+            <button type="submit" name="show_summary" value="1" class="action-btn">Show Summary</button>
+        </form>
+        <?php if (!empty($summary)): ?>
+            <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#181818;">
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Total</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php elseif (isset($_POST['show_summary'])): ?>
-        <p>No summary data found for this month.</p>
-    <?php endif; ?>
+                </thead>
+                <tbody>
+                    <?php foreach ($summary as $s): ?>
+                        <tr style="border-bottom:1px solid #333;">
+                            <td><?= htmlspecialchars($s['type']) ?></td>
+                            <td><?= htmlspecialchars($s['category']) ?></td>
+                            <td><?= number_format($s['total'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php elseif (isset($_POST['show_summary'])): ?>
+            <p>No summary data found for this month.</p>
+        <?php endif; ?>
+    </div>
 </body>
 </html> 

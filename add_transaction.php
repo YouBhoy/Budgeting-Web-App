@@ -51,30 +51,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add Transaction - Budgeting App</title>
+    <title>Add Transaction - BudgetFlix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-    <h2>Add Transaction</h2>
-    <?php if ($success): ?>
-        <div style="color: green; margin-bottom: 10px;"> <?= htmlspecialchars($success) ?> </div>
-    <?php endif; ?>
-    <?php if ($error): ?>
-        <div style="color: red; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
-    <?php endif; ?>
-    <form method="post" action="add_transaction.php">
-        <label>Type:
-            <select name="type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-            </select>
-        </label><br>
-        <label>Amount: <input type="number" name="amount" step="0.01" min="0" required></label><br>
-        <label>Description: <input type="text" name="description"></label><br>
-        <label>Category: <input type="text" name="category" required></label><br>
-        <!-- For family mode: add member selection here in the future -->
-        <button type="submit">Add</button>
-    </form>
-    <p><a href="dashboard.php">Back to Dashboard</a></p>
+    <div class="navbar">
+        <div class="navbar-logo">BudgetFlix</div>
+        <div class="navbar-links">
+            <a href="dashboard.php">Dashboard</a>
+            <a href="transactions.php">Transactions</a>
+            <a href="add_transaction.php">Add</a>
+            <a href="settings.php">Settings</a>
+            <a href="logout.php">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Add Transaction</h2>
+        <?php if ($success): ?>
+            <div style="color: #00e676; margin-bottom: 10px;"> <?= htmlspecialchars($success) ?> </div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div style="color: #e50914; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
+        <?php endif; ?>
+        <form method="post" action="add_transaction.php">
+            <label>Type:
+                <select name="type" required>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </label><br>
+            <label>Amount: <input type="number" name="amount" step="0.01" min="0" required></label><br>
+            <label>Description: <input type="text" name="description"></label><br>
+            <label>Category: <input type="text" name="category" required></label><br>
+            <button type="submit" class="action-btn">Add</button>
+        </form>
+        <p><a href="dashboard.php">Back to Dashboard</a></p>
+    </div>
 </body>
 </html> 

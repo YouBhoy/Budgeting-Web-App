@@ -1,192 +1,153 @@
 body {
-    font-family: Arial, sans-serif;
-    background: #f7f7f7;
+    font-family: 'Roboto', Arial, sans-serif;
+    background: #141414;
+    color: #fff;
     margin: 0;
     padding: 0;
 }
 
-h2 {
-    color: #333;
-}
-
-form {
-    background: #fff;
-    padding: 20px;
-    margin: 30px auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    max-width: 400px;
-}
-
-label {
-    display: block;
-    margin-bottom: 10px;
-    color: #222;
-}
-
-input, select, button {
-    padding: 8px;
-    margin-top: 4px;
-    margin-bottom: 16px;
-    width: 100%;
-    box-sizing: border-box;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-}
-
-button {
-    background: #007bff;
+h1, h2, h3, h4, h5, h6 {
     color: #fff;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-
-button:hover {
-    background: #0056b3;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 a {
-    color: #007bff;
+    color: #e50914;
     text-decoration: none;
+    transition: color 0.2s;
 }
 a:hover {
+    color: #fff;
     text-decoration: underline;
 }
 
-#quick-actions {
-    margin: 20px 0;
+.navbar {
+    background: #181818;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.navbar-logo {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #e50914;
+    letter-spacing: 2px;
+}
+.navbar-links {
+    display: flex;
+    gap: 32px;
+}
+.navbar-links a {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.navbar-links a:hover {
+    color: #e50914;
 }
 
-/* Dashboard Layout */
-.dashboard-container {
-    max-width: 700px;
-    margin: 48px auto 0 auto;
-    background: #fff;
+.container {
+    max-width: 1100px;
+    margin: 40px auto 0 auto;
+    padding: 32px 24px;
+    background: rgba(24,24,24,0.95);
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-    padding: 32px 24px 32px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
-.dashboard-header {
-    text-align: center;
-    margin-bottom: 32px;
-}
-.dashboard-header h2 {
-    font-size: 2rem;
-    color: #1a2a3a;
-    margin-bottom: 8px;
-}
-.dashboard-header p {
-    color: #4a5a6a;
-    font-size: 1.1rem;
-}
-.totals-cards {
+
+.card-grid {
     display: flex;
-    gap: 24px;
+    gap: 32px;
+    flex-wrap: wrap;
     justify-content: center;
     margin-bottom: 32px;
-    flex-wrap: wrap;
 }
 .card {
-    background: #f7faff;
+    background: #222;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.06);
-    padding: 24px 32px;
-    min-width: 180px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    padding: 28px 36px;
+    min-width: 200px;
     text-align: center;
-    flex: 1 1 180px;
+    flex: 1 1 220px;
+    border: 2px solid transparent;
+    transition: border 0.2s, transform 0.2s;
 }
-.income-card {
-    border-top: 4px solid #00c853;
-}
-.expense-card {
-    border-top: 4px solid #d32f2f;
-}
-.balance-card {
-    border-top: 4px solid #007bff;
+.card:hover {
+    border: 2px solid #e50914;
+    transform: translateY(-4px) scale(1.03);
 }
 .card-label {
-    color: #4a5a6a;
+    color: #b3b3b3;
     font-size: 1rem;
     margin-bottom: 8px;
 }
 .card-value {
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: bold;
-    color: #1a2a3a;
+    color: #fff;
 }
-.quick-actions {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
-}
-.action-btn {
-    background: linear-gradient(90deg, #007bff 60%, #00c6ff 100%);
+
+button, .action-btn {
+    background: #e50914;
     color: #fff;
     border: none;
-    border-radius: 6px;
-    padding: 10px 28px;
+    border-radius: 4px;
+    padding: 12px 32px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s, box-shadow 0.2s;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.10);
-    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(229,9,20,0.10);
     margin-bottom: 8px;
 }
-.action-btn:hover {
-    background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+button:hover, .action-btn:hover {
+    background: #b0060f;
 }
-.logout {
-    background: linear-gradient(90deg, #d32f2f 60%, #ff5252 100%);
-}
-.logout:hover {
-    background: linear-gradient(90deg, #b71c1c 60%, #d32f2f 100%);
-}
-.analytics-section {
-    background: #f7faff;
-    border-radius: 12px;
-    padding: 24px 16px;
-    margin-top: 16px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.04);
-}
-.analytics-section h3 {
-    color: #007bff;
-    margin-bottom: 12px;
-}
-.analytics-placeholder {
-    color: #4a5a6a;
-    font-style: italic;
-    font-size: 1.05rem;
-}
-@media (max-width: 800px) {
-    .dashboard-container { padding: 16px 2vw; }
-    .totals-cards { flex-direction: column; gap: 16px; }
-    .quick-actions { flex-direction: column; gap: 8px; }
-} 
 
-/* Banking theme background and logo */
-.banking-bg {
-    background: linear-gradient(135deg, #e0e7ef 0%, #f5f7fa 100%);
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
+form {
+    background: #181818;
+    padding: 28px;
+    margin: 32px auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    max-width: 400px;
 }
-.bank-logo {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 16px auto;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #007bff 60%, #00c6ff 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2rem;
+label {
+    display: block;
+    margin-bottom: 10px;
     color: #fff;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.10);
+    font-weight: 500;
+}
+input, select {
+    padding: 10px;
+    margin-top: 4px;
+    margin-bottom: 18px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid #333;
+    background: #222;
+    color: #fff;
+    font-size: 1rem;
+    transition: border 0.2s;
+}
+input:focus, select:focus {
+    border: 1.5px solid #e50914;
+    outline: none;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .container { padding: 16px 2vw; }
+    .card-grid { flex-direction: column; gap: 16px; }
 } 
