@@ -20,7 +20,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Disposition: attachment; filename="transactions.csv"');
     $out = fopen('php://output', 'w');
     fputcsv($out, ['Type', 'Amount', 'Description', 'Category', 'Date']);
-    $query = 'SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ?';
+    $query = 'SELECT id, type, amount, description, category, created_at FROM transactions WHERE user_id = ?';
     $params = [$user_id];
     $types = 'i';
     if ($type_filter) { $query .= ' AND type = ?'; $params[] = $type_filter; $types .= 's'; }
@@ -31,7 +31,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $stmt = $conn->prepare($query);
     $stmt->bind_param($types, ...$params);
     $stmt->execute();
-    $stmt->bind_result($type, $amount, $description, $category, $created_at);
+    $stmt->bind_result($id, $type, $amount, $description, $category, $created_at);
     while ($stmt->fetch()) {
         fputcsv($out, [$type, $amount, $description, $category, $created_at]);
     }
@@ -41,7 +41,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
 // --- FETCH TRANSACTIONS WITH FILTERS ---
 $transactions = [];
-$query = 'SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ?';
+$query = 'SELECT id, type, amount, description, category, created_at FROM transactions WHERE user_id = ?';
 $params = [$user_id];
 $types = 'i';
 if ($type_filter) { $query .= ' AND type = ?'; $params[] = $type_filter; $types .= 's'; }
@@ -52,9 +52,10 @@ $query .= ' ORDER BY created_at DESC';
 $stmt = $conn->prepare($query);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
-$stmt->bind_result($type, $amount, $description, $category, $created_at);
+$stmt->bind_result($id, $type, $amount, $description, $category, $created_at);
 while ($stmt->fetch()) {
     $transactions[] = [
+        'id' => $id,
         'type' => $type,
         'amount' => $amount,
         'description' => $description,
@@ -63,6 +64,15 @@ while ($stmt->fetch()) {
     ];
 }
 $stmt->close();
+// Group transactions by category for tabbed display
+$transactions_by_category = [];
+foreach ($transactions as $t) {
+    $cat = $t['category'] ?: 'Uncategorized';
+    if (!isset($transactions_by_category[$cat])) {
+        $transactions_by_category[$cat] = [];
+    }
+    $transactions_by_category[$cat][] = $t;
+}
 
 // --- CATEGORY LIST FOR FILTERS ---
 $categories = [];
@@ -91,6 +101,15 @@ if (isset($_POST['show_summary'])) {
     $stmt->close();
     $conn->next_result();
 }
+// Group summary by category for tabbed display
+$summary_by_category = [];
+foreach ($summary as $s) {
+    $cat = $s['category'] ?: 'Uncategorized';
+    if (!isset($summary_by_category[$cat])) {
+        $summary_by_category[$cat] = [];
+    }
+    $summary_by_category[$cat][] = $s;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,6 +117,16 @@ if (isset($_POST['show_summary'])) {
     <meta charset="UTF-8">
     <title>Transactions - BudgetFlix</title>
     <link rel="stylesheet" href="assets/style.css">
+    <style>
+        .tab-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab-btn {
+            background: #181818; color: #fff; border: none; padding: 8px 18px; border-radius: 6px 6px 0 0;
+            cursor: pointer; font-weight: bold; outline: none; transition: background 0.2s;
+        }
+        .tab-btn.active { background: #e50914; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
 </head>
 <body>
     <div class="navbar">
@@ -111,63 +140,89 @@ if (isset($_POST['show_summary'])) {
         </div>
     </div>
     <div class="container">
-        <h2>Your Transactions</h2>
-        <div style="margin-bottom:20px;">
-            <a href="add_transaction.php" class="action-btn">Add Transaction</a>
-            <a href="dashboard.php" class="action-btn">Back to Dashboard</a>
+        <div class="section-card" style="background:#181818; border-radius:12px; box-shadow:0 2px 8px #0002; padding:32px 24px 24px 24px; margin-bottom:40px;">
+        <h2 style="margin-top:0;">Your Transactions</h2>
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="tab-all">All</button>
+            <?php foreach ($categories as $cat): ?>
+                <button class="tab-btn" data-tab="tab-<?= htmlspecialchars(preg_replace('/[^a-zA-Z0-9]/', '', $cat)) ?>">
+                    <?= htmlspecialchars($cat) ?>
+                </button>
+            <?php endforeach; ?>
         </div>
-        <!-- FILTER FORM -->
-        <form method="get" action="transactions.php" style="margin-bottom: 20px;">
-            <label>Type:
-                <select name="type">
-                    <option value="">All</option>
-                    <option value="income"<?= $type_filter==='income'?' selected':''; ?>>Income</option>
-                    <option value="expense"<?= $type_filter==='expense'?' selected':''; ?>>Expense</option>
-                </select>
-            </label>
-            <label>Category:
-                <select name="category">
-                    <option value="">All</option>
-                    <?php foreach ($categories as $cat): ?>
-                        <option value="<?= htmlspecialchars($cat) ?>"<?= $category_filter===$cat?' selected':''; ?>><?= htmlspecialchars($cat) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>Start Date: <input type="date" name="start_date" value="<?= htmlspecialchars($start_date) ?>"></label>
-            <label>End Date: <input type="date" name="end_date" value="<?= htmlspecialchars($end_date) ?>"></label>
-            <button type="submit" class="action-btn">Filter</button>
-            <a href="transactions.php" class="action-btn">Reset</a>
-            <button type="submit" name="export" value="csv" class="action-btn">Export CSV</button>
-        </form>
-        <!-- TRANSACTIONS TABLE -->
-        <?php if (empty($transactions)): ?>
-            <p>No transactions found.</p>
-        <?php else: ?>
-        <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
-            <thead>
-                <tr style="background:#181818;">
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($transactions as $t): ?>
-                    <tr style="border-bottom:1px solid #333;">
-                        <td><?= htmlspecialchars($t['type']) ?></td>
-                        <td><?= number_format($t['amount'], 2) ?></td>
-                        <td><?= htmlspecialchars($t['description']) ?></td>
-                        <td><?= htmlspecialchars($t['category']) ?></td>
-                        <td><?= htmlspecialchars($t['created_at']) ?></td>
+        <!-- TRANSACTIONS TABLES BY TAB -->
+        <div id="tab-all" class="tab-content active">
+            <?php if (empty($transactions)): ?>
+                <p>No transactions found.</p>
+            <?php else: ?>
+            <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#181818;">
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Actions</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php endif; ?>
-        <!-- MONTHLY SUMMARY FORM -->
-        <h3>Monthly Summary</h3>
+                </thead>
+                <tbody>
+                    <?php foreach ($transactions as $t): ?>
+                        <tr style="border-bottom:1px solid #333;">
+                            <td><?= htmlspecialchars($t['type']) ?></td>
+                            <td><?= number_format($t['amount'], 2) ?></td>
+                            <td><?= htmlspecialchars($t['description']) ?></td>
+                            <td><?= htmlspecialchars($t['category']) ?></td>
+                            <td><?= htmlspecialchars($t['created_at']) ?></td>
+                            <td>
+                                <a href="edit_transaction.php?id=<?= $t['id'] ?>" class="action-btn" style="padding:2px 10px; font-size:0.95em; background:#00bcd4;">Edit</a>
+                                <a href="delete_transaction.php?id=<?= $t['id'] ?>" class="action-btn" style="padding:2px 10px; font-size:0.95em; background:#e50914;" onclick="return confirm('Are you sure you want to delete this transaction?');">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php foreach ($categories as $cat): ?>
+        <div id="tab-<?= htmlspecialchars(preg_replace('/[^a-zA-Z0-9]/', '', $cat)) ?>" class="tab-content">
+            <?php $cat_key = $cat ?: 'Uncategorized'; ?>
+            <?php if (empty($transactions_by_category[$cat_key])): ?>
+                <p>No transactions found in this category.</p>
+            <?php else: ?>
+            <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#181818;">
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($transactions_by_category[$cat_key] as $t): ?>
+                        <tr style="border-bottom:1px solid #333;">
+                            <td><?= htmlspecialchars($t['type']) ?></td>
+                            <td><?= number_format($t['amount'], 2) ?></td>
+                            <td><?= htmlspecialchars($t['description']) ?></td>
+                            <td><?= htmlspecialchars($t['category']) ?></td>
+                            <td><?= htmlspecialchars($t['created_at']) ?></td>
+                            <td>
+                                <a href="edit_transaction.php?id=<?= $t['id'] ?>" class="action-btn" style="padding:2px 10px; font-size:0.95em; background:#00bcd4;">Edit</a>
+                                <a href="delete_transaction.php?id=<?= $t['id'] ?>" class="action-btn" style="padding:2px 10px; font-size:0.95em; background:#e50914;" onclick="return confirm('Are you sure you want to delete this transaction?');">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        </div>
+        <div class="section-card" style="background:#181818; border-radius:12px; box-shadow:0 2px 8px #0002; padding:32px 24px 24px 24px; margin-bottom:40px;">
+        <h3 style="margin-top:0;">Monthly Summary</h3>
         <form method="post" action="transactions.php" style="margin-bottom: 20px;">
             <label>Month:
                 <select name="summary_month">
@@ -186,6 +241,15 @@ if (isset($_POST['show_summary'])) {
             <button type="submit" name="show_summary" value="1" class="action-btn">Show Summary</button>
         </form>
         <?php if (!empty($summary)): ?>
+        <div class="tab-bar summary-tab-bar">
+            <button class="tab-btn summary-tab-btn active" data-tab="summary-tab-all">All</button>
+            <?php foreach ($categories as $cat): ?>
+                <button class="tab-btn summary-tab-btn" data-tab="summary-tab-<?= htmlspecialchars(preg_replace('/[^a-zA-Z0-9]/', '', $cat)) ?>">
+                    <?= htmlspecialchars($cat) ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <div id="summary-tab-all" class="tab-content summary-tab-content active">
             <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
                 <thead>
                     <tr style="background:#181818;">
@@ -204,9 +268,38 @@ if (isset($_POST['show_summary'])) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+        <?php foreach ($categories as $cat): ?>
+        <div id="summary-tab-<?= htmlspecialchars(preg_replace('/[^a-zA-Z0-9]/', '', $cat)) ?>" class="tab-content summary-tab-content">
+            <?php $cat_key = $cat ?: 'Uncategorized'; ?>
+            <?php if (empty($summary_by_category[$cat_key])): ?>
+                <p>No summary data found for this category in this month.</p>
+            <?php else: ?>
+            <table style="border-collapse: collapse; width: 100%; background:#222; color:#fff; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#181818;">
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($summary_by_category[$cat_key] as $s): ?>
+                        <tr style="border-bottom:1px solid #333;">
+                            <td><?= htmlspecialchars($s['type']) ?></td>
+                            <td><?= htmlspecialchars($s['category']) ?></td>
+                            <td><?= number_format($s['total'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
         <?php elseif (isset($_POST['show_summary'])): ?>
             <p>No summary data found for this month.</p>
         <?php endif; ?>
+        </div>
     </div>
 </body>
 </html> 

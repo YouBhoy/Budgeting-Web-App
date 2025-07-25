@@ -151,3 +151,81 @@ input:focus, select:focus {
     .container { padding: 16px 2vw; }
     .card-grid { flex-direction: column; gap: 16px; }
 } 
+
+/* THEME SUPPORT */
+.theme-light {
+    background: #f5f5f5;
+    color: #222;
+}
+.theme-light .navbar {
+    background: #fff;
+    color: #222;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.theme-light .navbar-logo {
+    color: #e50914;
+}
+.theme-light .navbar-links a {
+    color: #222;
+}
+.theme-light .navbar-links a:hover {
+    color: #e50914;
+}
+.theme-light .container {
+    background: #fff;
+    color: #222;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+.theme-light .card {
+    background: #fff;
+    color: #222;
+    border: 2px solid #eee;
+}
+.theme-light .card-label {
+    color: #888;
+}
+.theme-light .card-value {
+    color: #222;
+}
+.theme-light button, .theme-light .action-btn {
+    background: #e50914;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(229,9,20,0.08);
+}
+.theme-light button:hover, .theme-light .action-btn:hover {
+    background: #b0060f;
+}
+.theme-light form {
+    background: #f5f5f5;
+    color: #222;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.theme-light input, .theme-light select {
+    background: #fff;
+    color: #222;
+    border: 1px solid #ccc;
+}
+.theme-light input:focus, .theme-light select:focus {
+    border: 1.5px solid #e50914;
+}
+.theme-light table {
+    background: #fff;
+    color: #222;
+}
+.theme-light th {
+    background: #f0f0f0;
+    color: #222;
+}
+.theme-light tr {
+    border-bottom: 1px solid #eee;
+}
+.theme-light .section-card {
+    background: #fff;
+    color: #222;
+    box-shadow: 0 2px 8px #0001;
+}
+.theme-light .settings-form {
+    background: #f5f5f5;
+    color: #222;
+    box-shadow: 0 2px 8px #0001;
+} 
