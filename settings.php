@@ -81,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Settings - BudgetFlix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/style.css">
     <style>
         .settings-form { max-width: 420px; margin: 0 auto; background: #181818; padding: 32px 28px; border-radius: 10px; box-shadow: 0 2px 8px #0002; }
