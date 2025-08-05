@@ -1,10 +1,6 @@
 <?php
 require_once 'includes/db.php';
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
+require_once 'includes/session.php';
 
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'] ?? 'User';
@@ -12,51 +8,57 @@ $total_income = 0;
 $total_expense = 0;
 $balance = 0;
 
-// Get totals using stored procedure
-$stmt = $conn->prepare('CALL GetUserTotals(?)');
-$stmt->bind_param('i', $user_id);
-$stmt->execute();
-$stmt->bind_result($total_income, $total_expense);
-if ($stmt->fetch()) {
-    $balance = $total_income - $total_expense;
-}
-$stmt->close();
-// Clear results for next query after CALL
-$conn->next_result();
+try {
+    // Get totals using stored procedure
+    $stmt = $conn->prepare('CALL GetUserTotals(?)');
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->bind_result($total_income, $total_expense);
+    if ($stmt->fetch()) {
+        $balance = $total_income - $total_expense;
+    }
+    $stmt->close();
+    // Clear results for next query after CALL
+    $conn->next_result();
 
-// Fetch 5 most recent transactions
-$recent_transactions = [];
-$stmt = $conn->prepare('SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5');
-$stmt->bind_param('i', $user_id);
-$stmt->execute();
-$stmt->bind_result($type, $amount, $description, $category, $created_at);
-while ($stmt->fetch()) {
-    $recent_transactions[] = [
-        'type' => $type,
-        'amount' => $amount,
-        'description' => $description,
-        'category' => $category,
-        'created_at' => $created_at
-    ];
-}
-$stmt->close();
+    // Fetch 5 most recent transactions
+    $recent_transactions = [];
+    $stmt = $conn->prepare('SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5');
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->bind_result($type, $amount, $description, $category, $created_at);
+    while ($stmt->fetch()) {
+        $recent_transactions[] = [
+            'type' => $type,
+            'amount' => $amount,
+            'description' => $description,
+            'category' => $category,
+            'created_at' => $created_at
+        ];
+    }
+    $stmt->close();
 
-// Fetch 5 most recent expenses
-$recent_expenses = [];
-$stmt = $conn->prepare("SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ? AND type = 'expense' ORDER BY created_at DESC LIMIT 5");
-$stmt->bind_param('i', $user_id);
-$stmt->execute();
-$stmt->bind_result($type, $amount, $description, $category, $created_at);
-while ($stmt->fetch()) {
-    $recent_expenses[] = [
-        'type' => $type,
-        'amount' => $amount,
-        'description' => $description,
-        'category' => $category,
-        'created_at' => $created_at
-    ];
+    // Fetch 5 most recent expenses
+    $recent_expenses = [];
+    $stmt = $conn->prepare("SELECT type, amount, description, category, created_at FROM transactions WHERE user_id = ? AND type = 'expense' ORDER BY created_at DESC LIMIT 5");
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->bind_result($type, $amount, $description, $category, $created_at);
+    while ($stmt->fetch()) {
+        $recent_expenses[] = [
+            'type' => $type,
+            'amount' => $amount,
+            'description' => $description,
+            'category' => $category,
+            'created_at' => $created_at
+        ];
+    }
+    $stmt->close();
+
+} catch (Exception $e) {
+    error_log('Dashboard error: ' . $e->getMessage());
+    // Continue with default values
 }
-$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -345,6 +347,7 @@ $stmt->close();
             <a href="add_transaction.php" class="action-btn">Add Transaction</a>
             <a href="transactions.php" class="action-btn">View Transactions</a>
             <a href="settings.php" class="action-btn">Settings</a>
+            <a href="backup.php" class="action-btn" style="background:#2196F3;">📦 Backup</a>
             <a href="logout.php" class="action-btn" style="background:#b0060f;">Logout</a>
         </div>
     </div>

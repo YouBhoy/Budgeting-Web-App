@@ -1,34 +1,62 @@
 <?php
 require_once 'includes/db.php';
+require_once 'includes/csrf.php';
+require_once 'includes/validation.php';
+
+// Start session for CSRF protection
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
 
-    if (!$email || !$password) {
-        $error = 'Email and password are required.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF Protection
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Security token invalid. Please try again.';
     } else {
-        $stmt = $conn->prepare('SELECT id, username, password FROM users WHERE email = ?');
-        $stmt->bind_param('s', $email);
-        $stmt->execute();
-        $stmt->store_result();
-        if ($stmt->num_rows === 1) {
-            $stmt->bind_result($id, $username, $hashed);
-            $stmt->fetch();
-            if (password_verify($password, $hashed)) {
-                session_start();
-                $_SESSION['user_id'] = $id;
-                $_SESSION['username'] = $username;
-                header('Location: dashboard.php');
-                exit();
-            } else {
-                $error = 'Incorrect password.';
-            }
+        $email = sanitizeInput($_POST['email'] ?? '', 'email');
+        $password = $_POST['password'] ?? '';
+        
+        // Rate limiting
+        if (!rateLimitCheck('login_' . $_SERVER['REMOTE_ADDR'])) {
+            $error = 'Too many login attempts. Please try again later.';
+        } elseif (!$email || !$password) {
+            $error = 'Email and password are required.';
+        } elseif (!validateEmail($email)) {
+            $error = 'Please enter a valid email address.';
         } else {
-            $error = 'No account found with that email.';
+            $stmt = $conn->prepare('SELECT id, username, password FROM users WHERE email = ?');
+            $stmt->bind_param('s', $email);
+            $stmt->execute();
+            $stmt->store_result();
+            
+            if ($stmt->num_rows === 1) {
+                $stmt->bind_result($id, $username, $hashed);
+                $stmt->fetch();
+                
+                if (password_verify($password, $hashed)) {
+                    // Regenerate session ID to prevent session fixation
+                    session_regenerate_id(true);
+                    
+                    $_SESSION['user_id'] = $id;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['user_ip'] = $_SERVER['REMOTE_ADDR'] ?? '';
+                    $_SESSION['login_time'] = time();
+                    
+                    // Clear rate limit on successful login
+                    unset($_SESSION['rate_limits']['login_' . $_SERVER['REMOTE_ADDR']]);
+                    
+                    header('Location: dashboard.php');
+                    exit();
+                } else {
+                    $error = 'Incorrect password.';
+                }
+            } else {
+                $error = 'No account found with that email.';
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 ?>
@@ -58,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div style="color: #e50914; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
         <?php endif; ?>
         <form method="post" action="login.php">
+            <?= getCSRFInput() ?>
             <label>Email: <input type="email" name="email" required></label><br>
             <label>Password: <input type="password" name="password" required></label><br>
             <button type="submit" class="action-btn">Login</button>

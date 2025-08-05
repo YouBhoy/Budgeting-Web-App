@@ -1,42 +1,73 @@
 <?php
 require_once 'includes/db.php';
+require_once 'includes/csrf.php';
+require_once 'includes/validation.php';
+
+// Start session for CSRF protection
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $account_type = $_POST['account_type'] ?? '';
 
-    // Basic validation
-    if (!$username || !$email || !$password || !$account_type) {
-        $error = 'All fields are required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email address.';
-    } elseif (!in_array($account_type, ['individual', 'family'])) {
-        $error = 'Invalid account type.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF Protection
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Security token invalid. Please try again.';
     } else {
-        // Check if email already exists
-        $stmt = $conn->prepare('SELECT id FROM users WHERE email = ?');
-        $stmt->bind_param('s', $email);
-        $stmt->execute();
-        $stmt->store_result();
-        if ($stmt->num_rows > 0) {
-            $error = 'Email already registered.';
+        $username = sanitizeInput($_POST['username'] ?? '');
+        $email = sanitizeInput($_POST['email'] ?? '', 'email');
+        $password = $_POST['password'] ?? '';
+        $account_type = $_POST['account_type'] ?? '';
+
+        // Enhanced validation
+        if (!$username || !$email || !$password || !$account_type) {
+            $error = 'All fields are required.';
+        } elseif (!validateUsername($username)) {
+            $error = 'Username must be 3-50 characters and contain only letters, numbers, underscore, and dash.';
+        } elseif (!validateEmail($email)) {
+            $error = 'Please enter a valid email address.';
+        } elseif (!validatePassword($password)) {
+            $error = 'Password must be at least 6 characters long.';
+        } elseif (!in_array($account_type, ['individual', 'family'])) {
+            $error = 'Invalid account type.';
         } else {
-            // Hash password
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-            // Insert user
-            $stmt = $conn->prepare('INSERT INTO users (username, email, password, account_type) VALUES (?, ?, ?, ?)');
-            $stmt->bind_param('ssss', $username, $email, $hashed, $account_type);
-            if ($stmt->execute()) {
-                header('Location: login.php?registered=1');
-                exit();
+            // Check if email already exists
+            $stmt = $conn->prepare('SELECT id FROM users WHERE email = ?');
+            $stmt->bind_param('s', $email);
+            $stmt->execute();
+            $stmt->store_result();
+            
+            if ($stmt->num_rows > 0) {
+                $error = 'Email already registered.';
             } else {
-                $error = 'Registration failed. Please try again.';
+                // Check if username already exists
+                $stmt->close();
+                $stmt = $conn->prepare('SELECT id FROM users WHERE username = ?');
+                $stmt->bind_param('s', $username);
+                $stmt->execute();
+                $stmt->store_result();
+                
+                if ($stmt->num_rows > 0) {
+                    $error = 'Username already taken.';
+                } else {
+                    // Hash password and insert user
+                    $hashed = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt->close();
+                    
+                    $stmt = $conn->prepare('INSERT INTO users (username, email, password, account_type, created_at) VALUES (?, ?, ?, ?, NOW())');
+                    $stmt->bind_param('ssss', $username, $email, $hashed, $account_type);
+                    
+                    if ($stmt->execute()) {
+                        header('Location: login.php?registered=1');
+                        exit();
+                    } else {
+                        $error = 'Registration failed. Please try again.';
+                    }
+                }
             }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 ?>
@@ -63,11 +94,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div style="color: #e50914; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
         <?php endif; ?>
         <form method="post" action="register.php">
-            <label>Username: <input type="text" name="username" required></label><br>
+            <?= getCSRFInput() ?>
+            <label>Username: <input type="text" name="username" required maxlength="50"></label><br>
             <label>Email: <input type="email" name="email" required></label><br>
-            <label>Password: <input type="password" name="password" required></label><br>
+            <label>Password: <input type="password" name="password" required minlength="6"></label><br>
             <label>Account Type:
                 <select name="account_type" required>
+                    <option value="">Select Type</option>
                     <option value="individual">Individual</option>
                     <option value="family">Family / Shared</option>
                 </select>
