@@ -30,16 +30,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // Handle goal updates
     if ($action === 'update_progress') {
         $goal_id = intval($_POST['goal_id'] ?? 0);
-        $current_amount = floatval($_POST['current_amount'] ?? 0);
+        $update_type = $_POST['update_type'] ?? 'set'; // 'set', 'add', or 'deduct'
+        $amount = floatval($_POST['amount'] ?? 0);
         
-        if ($goal_id > 0) {
-            $stmt = $conn->prepare('UPDATE budget_goals SET current_amount = ? WHERE id = ? AND user_id = ?');
-            $stmt->bind_param('dii', $current_amount, $goal_id, $user_id);
+        if ($goal_id > 0 && $amount > 0) {
+            // Get current goal amount first
+            $stmt = $conn->prepare('SELECT current_amount FROM budget_goals WHERE id = ? AND user_id = ?');
+            $stmt->bind_param('ii', $goal_id, $user_id);
             $stmt->execute();
+            $stmt->bind_result($current_amount);
+            if ($stmt->fetch()) {
+                $stmt->close();
+                
+                // Calculate new amount based on update type
+                switch ($update_type) {
+                    case 'add':
+                        $new_amount = $current_amount + $amount;
+                        break;
+                    case 'deduct':
+                        $new_amount = max(0, $current_amount - $amount); // Prevent negative amounts
+                        break;
+                    case 'set':
+                    default:
+                        $new_amount = $amount;
+                        break;
+                }
+                
+                // Update the goal
+                $stmt2 = $conn->prepare('UPDATE budget_goals SET current_amount = ? WHERE id = ? AND user_id = ?');
+                $stmt2->bind_param('dii', $new_amount, $goal_id, $user_id);
+                $stmt2->execute();
+                $stmt2->close();
+                
+                $success_message = match($update_type) {
+                    'add' => 'amount_added',
+                    'deduct' => 'amount_deducted',
+                    'set' => 'progress_updated',
+                    default => 'progress_updated'
+                };
+                
+                header('Location: budget_goals.php?success=' . $success_message);
+                exit();
+            }
             $stmt->close();
-            
-            header('Location: budget_goals.php?success=progress_updated');
-            exit();
         }
     }
     
@@ -127,6 +160,8 @@ $overall_progress = $total_target > 0 ? ($total_current / $total_target) * 100 :
                 switch ($_GET['success']) {
                     case 'goal_created': echo '✅ Goal created successfully!'; break;
                     case 'progress_updated': echo '📈 Progress updated successfully!'; break;
+                    case 'amount_added': echo '💰 Amount added to goal successfully!'; break;
+                    case 'amount_deducted': echo '💸 Amount deducted from goal successfully!'; break;
                     case 'goal_deleted': echo '🗑️ Goal deleted successfully!'; break;
                 }
                 ?>
@@ -218,21 +253,16 @@ $overall_progress = $total_target > 0 ? ($total_current / $total_target) * 100 :
                         ?>
                         
                         <div class="card" style="border-left: 5px solid <?= $is_completed ? 'var(--success-color)' : ($is_overdue ? 'var(--danger-color)' : 'var(--primary-color)') ?>;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                                <h3 style="margin: 0; color: var(--text-primary);"><?= htmlspecialchars($goal['name']) ?></h3>
-                                <div style="display: flex; gap: 10px;">
-                                    <button onclick="editGoal(<?= $goal['id'] ?>)" class="action-btn btn-info" style="padding: 8px 12px; font-size: 0.9rem;">
-                                        ✏️
-                                    </button>
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this goal?')">
-                                        <input type="hidden" name="action" value="delete_goal">
-                                        <input type="hidden" name="goal_id" value="<?= $goal['id'] ?>">
-                                        <button type="submit" class="action-btn btn-danger" style="padding: 8px 12px; font-size: 0.9rem;">
-                                            🗑️
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                                                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                 <h3 style="margin: 0; color: var(--text-primary);"><?= htmlspecialchars($goal['name']) ?></h3>
+                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this goal?')">
+                                     <input type="hidden" name="action" value="delete_goal">
+                                     <input type="hidden" name="goal_id" value="<?= $goal['id'] ?>">
+                                     <button type="submit" class="action-btn btn-danger" style="padding: 8px 12px; font-size: 0.9rem;">
+                                         🗑️
+                                     </button>
+                                 </form>
+                             </div>
                             
                             <?php if ($goal['category']): ?>
                                 <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9rem;">
@@ -283,7 +313,7 @@ $overall_progress = $total_target > 0 ? ($total_current / $total_target) * 100 :
                             
                             <?php if (!$is_completed): ?>
                                 <button onclick="updateProgress(<?= $goal['id'] ?>, <?= $goal['current_amount'] ?>, <?= $goal['target_amount'] ?>)" class="action-btn btn-success" style="width: 100%;">
-                                    💰 Update Progress
+                                    ✏️ Edit Progress
                                 </button>
                             <?php else: ?>
                                 <div style="text-align: center; padding: 10px; background: var(--success-color); color: white; border-radius: var(--border-radius-sm); font-weight: bold;">
@@ -297,45 +327,156 @@ $overall_progress = $total_target > 0 ? ($total_current / $total_target) * 100 :
         </section>
     </main>
 
-    <!-- Progress Update Modal -->
+    <!-- Enhanced Progress Update Modal -->
     <div id="progressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-secondary); padding: 30px; border-radius: var(--border-radius); max-width: 400px; width: 90%;">
-            <h3 style="margin-top: 0; color: var(--primary-color);">Update Progress</h3>
-            <form method="POST">
+        <div style="background: var(--bg-secondary); padding: 30px; border-radius: var(--border-radius); max-width: 500px; width: 90%;">
+            <h3 style="margin-top: 0; color: var(--primary-color);">🎯 Update Goal Progress</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+                Choose how you want to update your goal progress
+            </p>
+            
+            <form method="POST" id="progressForm">
                 <input type="hidden" name="action" value="update_progress">
                 <input type="hidden" name="goal_id" id="modalGoalId">
+                <input type="hidden" name="update_type" id="updateType" value="add">
                 
-                <label for="current_amount">Current Amount (₱)</label>
-                <input type="number" id="modalCurrentAmount" name="current_amount" required min="0" step="0.01">
+                <!-- Update Type Selection -->
+                <div style="margin-bottom: 20px;">
+                    <label style="color: var(--text-primary); font-weight: bold; margin-bottom: 10px; display: block;">Update Type:</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--bg-primary); border-radius: var(--border-radius-sm); cursor: pointer; border: 2px solid var(--primary-color);">
+                            <input type="radio" name="update_type_radio" value="add" checked onchange="updateFormType('add')">
+                            <span>➕ Add</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--bg-primary); border-radius: var(--border-radius-sm); cursor: pointer; border: 2px solid transparent;">
+                            <input type="radio" name="update_type_radio" value="deduct" onchange="updateFormType('deduct')">
+                            <span>➖ Deduct</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--bg-primary); border-radius: var(--border-radius-sm); cursor: pointer; border: 2px solid transparent;">
+                            <input type="radio" name="update_type_radio" value="set" onchange="updateFormType('set')">
+                            <span>🎯 Set</span>
+                        </label>
+                    </div>
+                </div>
                 
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="action-btn btn-success">💾 Save</button>
-                    <button type="button" onclick="closeModal()" class="action-btn btn-danger">❌ Cancel</button>
+                <!-- Amount Input -->
+                <div style="margin-bottom: 20px;">
+                    <label for="amount" id="amountLabel" style="color: var(--text-primary); font-weight: bold; margin-bottom: 10px; display: block;">Amount to Add (₱):</label>
+                    <input type="number" id="amount" name="amount" required min="0" step="0.01" placeholder="0.00" style="width: 100%;">
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 5px;" id="amountHelp">
+                        Enter the amount to add to your current progress
+                    </p>
+                </div>
+                
+                <!-- Current Goal Info -->
+                <div style="background: var(--bg-primary); padding: 15px; border-radius: var(--border-radius-sm); margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: var(--text-secondary);">Current Amount:</span>
+                        <span style="color: var(--text-primary); font-weight: bold;" id="currentAmountDisplay">₱0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary);">Target Amount:</span>
+                        <span style="color: var(--text-primary); font-weight: bold;" id="targetAmountDisplay">₱0.00</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="action-btn btn-success" style="flex: 1;">💾 Update Goal</button>
+                    <button type="button" onclick="closeModal()" class="action-btn btn-danger" style="flex: 1;">❌ Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        let currentGoalAmount = 0;
+        let targetGoalAmount = 0;
+        
         function updateProgress(goalId, currentAmount, targetAmount) {
+            currentGoalAmount = currentAmount;
+            targetGoalAmount = targetAmount;
+            
             document.getElementById('modalGoalId').value = goalId;
-            document.getElementById('modalCurrentAmount').value = currentAmount;
+            document.getElementById('currentAmountDisplay').textContent = '₱' + currentAmount.toFixed(2);
+            document.getElementById('targetAmountDisplay').textContent = '₱' + targetAmount.toFixed(2);
+            document.getElementById('amount').value = '';
             document.getElementById('progressModal').style.display = 'flex';
+            
+            // Reset to "Add" mode
+            document.querySelector('input[value="add"]').checked = true;
+            updateFormType('add');
         }
         
-        function closeModal() {
-            document.getElementById('progressModal').style.display = 'none';
+        function updateFormType(type) {
+            document.getElementById('updateType').value = type;
+            
+            const amountLabel = document.getElementById('amountLabel');
+            const amountHelp = document.getElementById('amountHelp');
+            const amountInput = document.getElementById('amount');
+            
+            // Update radio button styling
+            document.querySelectorAll('input[name="update_type_radio"]').forEach(radio => {
+                const label = radio.parentElement;
+                if (radio.value === type) {
+                    label.style.borderColor = 'var(--primary-color)';
+                } else {
+                    label.style.borderColor = 'transparent';
+                }
+            });
+            
+            switch(type) {
+                case 'add':
+                    amountLabel.textContent = 'Amount to Add (₱):';
+                    amountHelp.textContent = 'Enter the amount to add to your current progress';
+                    amountInput.placeholder = '0.00';
+                    break;
+                case 'deduct':
+                    amountLabel.textContent = 'Amount to Deduct (₱):';
+                    amountHelp.textContent = 'Enter the amount to deduct from your current progress';
+                    amountInput.placeholder = '0.00';
+                    break;
+                case 'set':
+                    amountLabel.textContent = 'Set New Amount (₱):';
+                    amountHelp.textContent = 'Enter the new total amount for your goal';
+                    amountInput.placeholder = currentGoalAmount.toFixed(2);
+                    break;
+            }
         }
         
-        function editGoal(goalId) {
-            // Redirect to edit page or show edit modal
-            alert('Edit functionality coming soon!');
-        }
+                 function closeModal() {
+             document.getElementById('progressModal').style.display = 'none';
+         }
         
         // Close modal when clicking outside
         document.getElementById('progressModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
+            }
+        });
+        
+        // Form validation
+        document.getElementById('progressForm').addEventListener('submit', function(e) {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('updateType').value;
+            
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid amount greater than 0.');
+                return;
+            }
+            
+            if (type === 'deduct' && amount > currentGoalAmount) {
+                e.preventDefault();
+                alert('Cannot deduct more than the current amount. The deduction will be limited to the current amount.');
+                return;
+            }
+            
+            if (type === 'set' && amount > targetGoalAmount) {
+                if (!confirm('You are setting an amount higher than your target. Continue?')) {
+                    e.preventDefault();
+                    return;
+                }
             }
         });
     </script>
