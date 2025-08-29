@@ -20,10 +20,10 @@ ErrorDocument 500 /500.php
 </Files>
 
 # Prevent access to includes directory
-<Directory "includes/">
+<Files "includes/*">
     Order deny,allow
     Deny from all
-</Directory>
+</Files>
 
 # Enable GZIP compression (if supported)
 <IfModule mod_deflate.c>

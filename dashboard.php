@@ -64,41 +64,66 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - BudgetFlix</title>
+    <title>My Budget Dashboard - BudgetFlix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your personal budget dashboard - track income, expenses, and savings">
     <link rel="stylesheet" href="assets/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets/app.js" defer></script>
 </head>
 <body>
-    <div class="navbar">
+    <!-- Skip to main content for screen readers -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
         <div class="navbar-logo">BudgetFlix</div>
         <div class="navbar-links">
-            <a href="dashboard.php">Dashboard</a>
-            <a href="transactions.php">Transactions</a>
-            <a href="add_transaction.php">Add</a>
-            <a href="settings.php">Settings</a>
-            <a href="logout.php">Logout</a>
+            <a href="dashboard.php" aria-current="page">My Dashboard</a>
+            <a href="transactions.php">View All Transactions</a>
+            <a href="add_transaction.php">Add New Transaction</a>
+            <a href="budget_goals.php">Budget Goals</a>
+            <a href="recurring.php">Recurring</a>
+            <a href="help.php">Help & Tips</a>
+            <a href="settings.php">Account Settings</a>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                <span class="icon">☀️</span>
+                <span>Theme</span>
+            </button>
+            <a href="logout.php">Sign Out</a>
         </div>
-    </div>
-    <div class="container">
-        <div style="text-align:center; margin-bottom:32px;">
-            <h2>Welcome to Your Dashboard</h2>
-            <p>Hello, <?= htmlspecialchars($username) ?>!</p>
-        </div>
-        <div class="card-grid">
-            <div class="card">
-                <div class="card-label">Total Income</div>
-                <div class="card-value"> ₱<?= number_format($total_income, 2) ?></div>
+    </nav>
+    
+    <main id="main-content" class="container">
+        <header style="text-align:center; margin-bottom:40px;">
+            <h1>Welcome Back, <?= htmlspecialchars($username) ?>!</h1>
+            <p style="font-size: 1.2rem; color: #cccccc;">Here's your money summary for today</p>
+        </header>
+        <!-- Money Summary Cards with Clear Labels -->
+        <section aria-labelledby="money-summary" style="margin-bottom: 50px;">
+            <h2 id="money-summary" style="text-align: center; margin-bottom: 30px;">Your Money Summary</h2>
+            <div class="card-grid">
+                <div class="card" style="border-left: 5px solid #4CAF50;">
+                    <div class="card-label">💰 Total Money Coming In</div>
+                    <div class="card-value" style="color: #4CAF50; font-size: 2.5rem;">₱<?= number_format($total_income, 2) ?></div>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #888;">All your income</p>
+                </div>
+                <div class="card" style="border-left: 5px solid #f44336;">
+                    <div class="card-label">💸 Total Money Going Out</div>
+                    <div class="card-value" style="color: #f44336; font-size: 2.5rem;">₱<?= number_format($total_expense, 2) ?></div>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #888;">All your expenses</p>
+                </div>
+                <div class="card" style="border-left: 5px solid <?= $balance >= 0 ? '#2196F3' : '#ff9800' ?>;">
+                    <div class="card-label"><?= $balance >= 0 ? '💵 Money Left Over' : '⚠️ Money Needed' ?></div>
+                    <div class="card-value" style="color: <?= $balance >= 0 ? '#2196F3' : '#ff9800' ?>; font-size: 2.5rem;">
+                        <?= $balance >= 0 ? '₱' : '-₱' ?><?= number_format(abs($balance), 2) ?>
+                    </div>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #888;">
+                        <?= $balance >= 0 ? 'Your savings' : 'Over budget' ?>
+                    </p>
+                </div>
             </div>
-            <div class="card">
-                <div class="card-label">Total Expenses</div>
-                <div class="card-value"> ₱<?= number_format($total_expense, 2) ?></div>
-            </div>
-            <div class="card">
-                <div class="card-label">Balance</div>
-                <div class="card-value"> ₱<?= number_format($balance, 2) ?></div>
-            </div>
-        </div>
+        </section>
         <!-- Charts Section -->
         <div style="margin: 40px 0 32px 0; display: flex; flex-wrap: wrap; gap: 32px; justify-content: center;">
             <div style="flex:1 1 320px; min-width:320px; max-width:480px; background:#232323; border-radius:12px; box-shadow:0 2px 8px #0002; padding:24px;">
@@ -343,13 +368,24 @@ try {
                 </table>
             </div>
         </div>
-        <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:32px;">
-            <a href="add_transaction.php" class="action-btn">Add Transaction</a>
-            <a href="transactions.php" class="action-btn">View Transactions</a>
-            <a href="settings.php" class="action-btn">Settings</a>
-            <a href="backup.php" class="action-btn" style="background:#2196F3;">📦 Backup</a>
-            <a href="logout.php" class="action-btn" style="background:#b0060f;">Logout</a>
-        </div>
+        <!-- Easy Action Buttons -->
+        <section aria-labelledby="quick-actions" style="margin: 50px 0;">
+            <h2 id="quick-actions" style="text-align: center; margin-bottom: 30px;">What would you like to do?</h2>
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <a href="add_transaction.php" class="action-btn" style="background: #4CAF50; border-color: #4CAF50;">
+                    💰 Add Money Transaction
+                </a>
+                <a href="transactions.php" class="action-btn" style="background: #2196F3; border-color: #2196F3;">
+                    📋 See All My Transactions
+                </a>
+                <a href="backup.php" class="action-btn" style="background: #FF9800; border-color: #FF9800;">
+                    � Save My Data
+                </a>
+                <a href="settings.php" class="action-btn" style="background: #9C27B0; border-color: #9C27B0;">
+                    ⚙️ Change My Settings
+                </a>
+            </div>
+        </section>
     </div>
 </body>
 </html> 

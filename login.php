@@ -64,34 +64,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - BudgetFlix</title>
+    <title>Sign In - BudgetFlix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-    <div class="navbar">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <nav class="navbar" role="navigation">
         <div class="navbar-logo">BudgetFlix</div>
         <div class="navbar-links">
             <a href="index.php">Home</a>
-            <a href="login.php">Login</a>
-            <a href="register.php">Register</a>
+            <a href="login.php" aria-current="page">Sign In</a>
+            <a href="register.php">Create Account</a>
         </div>
-    </div>
-    <div class="container">
-        <h2>Login</h2>
+    </nav>
+    
+    <main id="main-content" class="container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1>Sign In to Your Account</h1>
+            <p style="font-size: 1.1rem; color: #cccccc;">Enter your information below to access your budget</p>
+        </header>
+        
         <?php if (isset($_GET['registered'])): ?>
-            <div style="color: #00e676; margin-bottom: 10px;">Registration successful! Please log in.</div>
+            <div style="color: #4CAF50; margin-bottom: 20px; padding: 15px; background: #1b5e20; border-radius: 8px; text-align: center; font-size: 1.1rem;">
+                ✅ Account created successfully! Please sign in below.
+            </div>
         <?php endif; ?>
+        
+        <?php if (isset($_GET['logged_out'])): ?>
+            <div style="color: #2196F3; margin-bottom: 20px; padding: 15px; background: #0d47a1; border-radius: 8px; text-align: center; font-size: 1.1rem;">
+                👋 You have been signed out successfully.
+            </div>
+        <?php endif; ?>
+        
         <?php if ($error): ?>
-            <div style="color: #e50914; margin-bottom: 10px;"> <?= htmlspecialchars($error) ?> </div>
+            <div role="alert" style="color: #f44336; margin-bottom: 20px; padding: 15px; background: #b71c1c; border-radius: 8px; text-align: center; font-size: 1.1rem;">
+                ❌ <?= htmlspecialchars($error) ?>
+            </div>
         <?php endif; ?>
-        <form method="post" action="login.php">
-            <?= getCSRFInput() ?>
-            <label>Email: <input type="email" name="email" required></label><br>
-            <label>Password: <input type="password" name="password" required></label><br>
-            <button type="submit" class="action-btn">Login</button>
+        
+        <form method="post" action="login.php" role="form" aria-labelledby="signin-form">
+            <fieldset>
+                <legend id="signin-form" style="font-size: 1.3rem; margin-bottom: 20px; color: #ffffff;">Your Sign In Information</legend>
+                
+                <?= getCSRFInput() ?>
+                
+                <label for="email">📧 Your Email Address:</label>
+                <input type="email" id="email" name="email" required 
+                       aria-describedby="email-help"
+                       placeholder="example@email.com">
+                <div id="email-help" style="font-size: 0.9rem; color: #999; margin-bottom: 15px;">
+                    Enter the email address you used when creating your account
+                </div>
+                
+                <label for="password">🔒 Your Password:</label>
+                <input type="password" id="password" name="password" required
+                       aria-describedby="password-help"
+                       placeholder="Enter your password">
+                <div id="password-help" style="font-size: 0.9rem; color: #999; margin-bottom: 25px;">
+                    Enter the password you created for your account
+                </div>
+                
+                <button type="submit" class="action-btn" style="width: 100%; font-size: 1.3rem;">
+                    🚪 Sign In to My Account
+                </button>
+            </fieldset>
         </form>
-        <p>Don't have an account? <a href="register.php">Register here</a>.</p>
-    </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: #2d2d2d; border-radius: 8px;">
+            <p style="font-size: 1.1rem;">Don't have an account yet?</p>
+            <a href="register.php" class="action-btn" style="background: #4CAF50; border-color: #4CAF50;">
+                ➕ Create New Account
+            </a>
+        </div>
+    </main>
 </body>
 </html> 

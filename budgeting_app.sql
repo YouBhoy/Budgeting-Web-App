@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 25, 2025 at 02:36 PM
+-- Generation Time: Aug 29, 2025 at 02:04 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -55,12 +55,40 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `DeleteSavingsGoal` (IN `p_id` INT, 
   DELETE FROM savings_goals WHERE id = p_id AND user_id = p_user_id;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBudgetGoalsSummary` (IN `user_id_param` INT)   BEGIN
+                        SELECT 
+                            COUNT(*) as total_goals,
+                            COUNT(CASE WHEN current_amount >= target_amount THEN 1 END) as completed_goals,
+                            SUM(target_amount) as total_target,
+                            SUM(current_amount) as total_current,
+                            AVG(CASE WHEN current_amount < target_amount THEN (current_amount / target_amount) * 100 END) as avg_progress
+                        FROM budget_goals 
+                        WHERE user_id = user_id_param;
+                    END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetMonthlySummary` (IN `p_user_id` INT, IN `p_month` INT, IN `p_year` INT)   BEGIN
   SELECT type, category, SUM(amount) AS total
   FROM transactions
   WHERE user_id = p_user_id AND MONTH(created_at) = p_month AND YEAR(created_at) = p_year
   GROUP BY type, category;
 END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetRecurringDueSoon` (IN `user_id_param` INT, IN `days_ahead` INT)   BEGIN
+                        SELECT 
+                            id,
+                            type,
+                            amount,
+                            description,
+                            category,
+                            frequency,
+                            next_due,
+                            DATEDIFF(next_due, CURDATE()) as days_until_due
+                        FROM recurring_transactions 
+                        WHERE user_id = user_id_param 
+                        AND is_active = 1 
+                        AND next_due BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL days_ahead DAY)
+                        ORDER BY next_due ASC;
+                    END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserTotals` (IN `p_user_id` INT)   BEGIN
   SELECT 
@@ -88,6 +116,24 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateSavingsGoal` (IN `p_id` INT, 
 END$$
 
 DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budget_goals`
+--
+
+CREATE TABLE `budget_goals` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `target_amount` decimal(10,2) NOT NULL,
+  `current_amount` decimal(10,2) DEFAULT 0.00,
+  `deadline` date DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -150,17 +196,21 @@ CREATE TABLE `transactions` (
   `amount` decimal(10,2) NOT NULL,
   `description` varchar(255) DEFAULT NULL,
   `category` varchar(100) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `transactions`
 --
 
-INSERT INTO `transactions` (`id`, `user_id`, `member_id`, `type`, `amount`, `description`, `category`, `created_at`) VALUES
-(2, 1, NULL, 'income', 100.00, '', 'JIB', '2025-07-24 10:05:03'),
-(4, 1, NULL, 'expense', 123.00, '', 'POOP', '2025-07-25 12:22:51'),
-(5, 1, NULL, 'expense', 32.00, '', 'POOP', '2025-07-25 12:23:32');
+INSERT INTO `transactions` (`id`, `user_id`, `member_id`, `type`, `amount`, `description`, `category`, `created_at`, `updated_at`) VALUES
+(2, 1, NULL, 'income', 100.00, '', 'JIB', '2025-07-24 10:05:03', '2025-08-05 12:19:43'),
+(4, 1, NULL, 'expense', 123.00, '', 'POOP', '2025-07-25 12:22:51', '2025-08-05 12:19:43'),
+(5, 1, NULL, 'expense', 32.00, '', 'POOP', '2025-07-25 12:23:32', '2025-08-05 12:19:43'),
+(6, 1, NULL, 'income', 30000.00, '', 'JOB', '2025-07-25 14:19:04', '2025-08-05 12:19:43'),
+(7, 1, NULL, 'expense', 13000.00, '', 'grocery', '2025-07-25 14:19:27', '2025-08-05 12:19:43'),
+(8, 1, NULL, 'income', 1234.00, 'Grocery', 'Food', '2025-08-05 12:54:11', '2025-08-05 12:54:11');
 
 -- --------------------------------------------------------
 
@@ -174,19 +224,33 @@ CREATE TABLE `users` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `account_type` enum('individual','family') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `currency` varchar(10) NOT NULL DEFAULT 'PHP',
+  `theme` varchar(10) NOT NULL DEFAULT 'dark',
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_login` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `account_type`, `created_at`) VALUES
-(1, 'Test Account', 'test@gmail.com', '$2y$10$p6AjsgzvSlTQygZmWg6zzOGdN/SM0MWgE2t8Pxr4CygzSh4fQCQOq', 'family', '2025-07-23 12:53:07');
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `account_type`, `created_at`, `currency`, `theme`, `updated_at`, `last_login`) VALUES
+(1, 'Test Account', 'test@gmail.com', '$2y$10$p6AjsgzvSlTQygZmWg6zzOGdN/SM0MWgE2t8Pxr4CygzSh4fQCQOq', 'family', '2025-07-23 12:53:07', 'PHP', 'light', '2025-08-05 12:58:55', '2025-08-05 12:58:55');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `budget_goals`
+--
+ALTER TABLE `budget_goals`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `deadline` (`deadline`),
+  ADD KEY `category` (`category`),
+  ADD KEY `idx_budget_goals_user_deadline` (`user_id`,`deadline`);
 
 --
 -- Indexes for table `family_members`
@@ -214,19 +278,32 @@ ALTER TABLE `savings_goals`
 --
 ALTER TABLE `transactions`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `member_id` (`member_id`);
+  ADD KEY `member_id` (`member_id`),
+  ADD KEY `idx_transactions_user_id` (`user_id`),
+  ADD KEY `idx_transactions_created_at` (`created_at`),
+  ADD KEY `idx_transactions_type` (`type`),
+  ADD KEY `idx_transactions_category` (`category`),
+  ADD KEY `idx_transactions_user_type` (`user_id`,`type`),
+  ADD KEY `idx_transactions_user_date` (`user_id`,`created_at`);
 
 --
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_users_email` (`email`),
+  ADD KEY `idx_users_username` (`username`);
 
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `budget_goals`
+--
+ALTER TABLE `budget_goals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `family_members`
@@ -250,7 +327,7 @@ ALTER TABLE `savings_goals`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -261,6 +338,12 @@ ALTER TABLE `users`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `budget_goals`
+--
+ALTER TABLE `budget_goals`
+  ADD CONSTRAINT `fk_budget_goals_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `family_members`
