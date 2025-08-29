@@ -55,6 +55,26 @@ try {
     }
     $stmt->close();
 
+    // Fetch user's goals for dashboard summary
+    $goals_summary = [];
+    $stmt = $conn->prepare('SELECT id, name, target_amount, current_amount, deadline FROM budget_goals WHERE user_id = ? AND current_amount < target_amount ORDER BY deadline ASC LIMIT 3');
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->bind_result($goal_id, $goal_name, $goal_target, $goal_current, $goal_deadline);
+    while ($stmt->fetch()) {
+        $progress = $goal_target > 0 ? ($goal_current / $goal_target) * 100 : 0;
+        $days_left = $goal_deadline ? max(0, (strtotime($goal_deadline) - time()) / 86400) : null;
+        $goals_summary[] = [
+            'id' => $goal_id,
+            'name' => $goal_name,
+            'target' => $goal_target,
+            'current' => $goal_current,
+            'progress' => $progress,
+            'days_left' => $days_left
+        ];
+    }
+    $stmt->close();
+
 } catch (Exception $e) {
     error_log('Dashboard error: ' . $e->getMessage());
     // Continue with default values
@@ -338,6 +358,42 @@ try {
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Budget Goals Summary -->
+            <?php if (!empty($goals_summary)): ?>
+            <div style="margin-bottom:32px; border-left: 6px solid #ff6b6b; background: #232323; border-radius: 10px; box-shadow: 0 2px 8px #0002;">
+                <h3 style="margin:0; padding: 16px 0 8px 20px; font-size:1.3em; background: linear-gradient(90deg, #ff6b6b 0 10%, transparent 60%); color:#fff; border-radius:10px 10px 0 0; letter-spacing:0.5px;">
+                    🎯 Active Budget Goals
+                </h3>
+                <div style="padding: 20px; background:#222; border-radius:0 0 10px 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <?php foreach ($goals_summary as $goal): ?>
+                            <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; border-left: 4px solid #ff6b6b;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <h4 style="margin: 0; color: #fff; font-size: 1.1rem;"><?= htmlspecialchars($goal['name']) ?></h4>
+                                    <span style="color: #ff6b6b; font-weight: bold;"><?= number_format($goal['progress'], 1) ?>%</span>
+                                </div>
+                                <div style="background: #333; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 10px;">
+                                    <div style="background: linear-gradient(90deg, #ff6b6b, #ff8e8e); height: 100%; width: <?= min(100, $goal['progress']) ?>%; transition: width 0.5s ease;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #ccc;">
+                                    <span>₱<?= number_format($goal['current'], 2) ?> / ₱<?= number_format($goal['target'], 2) ?></span>
+                                    <?php if ($goal['days_left'] !== null): ?>
+                                        <span><?= round($goal['days_left']) ?> days left</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="budget_goals.php" class="action-btn" style="background: #ff6b6b; border-color: #ff6b6b; font-size: 0.9rem;">
+                            🎯 View All Goals
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <div style="margin-bottom:32px; border-left: 6px solid #00e676; background: #232323; border-radius: 10px; box-shadow: 0 2px 8px #0002;">
                 <h3 style="margin:0; padding: 16px 0 8px 20px; font-size:1.3em; background: linear-gradient(90deg, #00e676 0 10%, transparent 60%); color:#fff; border-radius:10px 10px 0 0; letter-spacing:0.5px;">
                     📋 Recent Transactions
